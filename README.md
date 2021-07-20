@@ -4,7 +4,7 @@ This project provides a C# interface for the BeaEngine 5.3.0. https://github.com
 
 C# usage as follows:
 
-byte[] byteArray = new byte[] { 0x48, 0x83, 0x3D, 0xC6, 0x8B, 0x00, 0x00, 0x00 };
+            byte[] byteArray = new byte[] { 0x48, 0x83, 0x3D, 0xC6, 0x8B, 0x00, 0x00, 0x00 };
 
             List<BeaEngine._Disasm> theList = BeaEngine._Disassemble(byteArray, 0x7FFDCDE61D3A, BeaEngine.Architecture.x86_64);
 
