@@ -38,25 +38,6 @@ either expressed or implied, of the FreeBSD Project.
  *  - BeaEngine 5.3.0 compatibility
  */
 
-/*
-byte[] byteArray = new byte[] { 0x48, 0x83, 0x3D, 0xC6, 0x8B, 0x00, 0x00, 0x00 };
-
-List<BeaEngine._Disasm> theList = BeaEngine._Disassemble(byteArray, 0x7FFDCDE61D3A, BeaEngine.Architecture.x86_64);
-
-            for (int i = 0; i<theList.Count; i++)
-            {
-
-                BeaEngine._Disasm disasm = theList[i];
-
-                if (disasm.Length< 1 || disasm.Length> 15) // Verify that instruction lenght is within the bounds.
-                    continue;
-
-                Console.WriteLine("{0} => {1}", disasm.VirtualAddr.ToString("X16"), disasm.CompleteInstr);
-                // 00007FFDCDE61D3A => cmp qword ptr [00007FFDCDE6A908h], 0000000000000000h
-
-            }
-*/
-
 #define WIN64
 
 using System;
@@ -89,14 +70,7 @@ namespace HEX_DEREF
         {
             // return Interlocked.Increment(ref totalDisassembledOpCodes);
             return Interlocked.Add(ref totalDisassembledOpCodes, length);
-        }
-
-        public static volatile Int32 totalYieldedInstructions = 0;
-
-        public static Int32 IncrementYieldedInstructions()
-        {
-            return Interlocked.Increment(ref totalYieldedInstructions);
-        }
+        }        
 
         #region Constants        
 
@@ -487,26 +461,17 @@ namespace HEX_DEREF
 
                 d.Length = BeaEngine.Disassemble(ref d);
 
-                if (d.Length == BeaEngine.OutOfBlock)
+                if (d.Length == BeaEngine.UnknownOpcode || d.Length == BeaEngine.OutOfBlock)
                 {
-                    error = true;
-                }
-                else if (d.Length == BeaEngine.UnknownOpcode)
-                {
-
-                    IncrementDisassembledOpCodes(d.Length);
-
                     d.EIP = d.EIP + 1;
                     d.VirtualAddr = d.VirtualAddr + 1;
-
-                }
+                }                
                 else
                 {
 
                     _Disasm yieldedInst = d;
 
-                    IncrementDisassembledOpCodes(yieldedInst.Length); // Disassembled op codes / sec
-                    // IncrementYieldedInstructions();
+                    IncrementDisassembledOpCodes(yieldedInst.Length); // Disassembled op codes / sec                    
 
                     // Console.WriteLine("{0} {1} [{2}]", yieldedInst.VirtualAddr.ToString("X"), yieldedInst.CompleteInstr, yieldedInst.Length);
 
@@ -524,13 +489,6 @@ namespace HEX_DEREF
                         yield return yieldedInst;
 
                 }
-
-                /*
-                if (error)
-                {
-                    Console.WriteLine("error: {0}", d.VirtualAddr.ToString("X"));
-                }
-                */
 
             }
 
