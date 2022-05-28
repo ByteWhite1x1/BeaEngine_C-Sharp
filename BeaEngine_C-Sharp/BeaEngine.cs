@@ -74,9 +74,6 @@ using System.IO;
 
 using UInt8 = System.Byte;
 
-namespace HEX_DEREF
-{
-
     /// <summary>
     /// A simple C# interface to the BeaEngine library.
     /// </summary>
@@ -86,8 +83,7 @@ namespace HEX_DEREF
         public static volatile Int32 totalDisassembledOpCodes = 0;
 
         public static Int32 IncrementDisassembledOpCodes(int length)
-        {
-            // return Interlocked.Increment(ref totalDisassembledOpCodes);
+        {            
             return Interlocked.Add(ref totalDisassembledOpCodes, length);
         }
 
@@ -856,5 +852,3 @@ namespace HEX_DEREF
 
         #endregion
     }
-
-}
