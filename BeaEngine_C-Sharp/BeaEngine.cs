@@ -38,23 +38,27 @@ either expressed or implied, of the FreeBSD Project.
  *  - BeaEngine 5.3.0 compatibility
  */
 
+/* C# usage as follows: */
+
 /*
-byte[] byteArray = new byte[] { 0x48, 0x83, 0x3D, 0xC6, 0x8B, 0x00, 0x00, 0x00 };
 
-List<BeaEngine._Disasm> theList = BeaEngine._Disassemble(byteArray, 0x7FFDCDE61D3A, BeaEngine.Architecture.x86_64);
+            byte[] byteArray = new byte[] { 0x48, 0x83, 0x3D, 0xC6, 0x8B, 0x00, 0x00, 0x00 };
 
-            for (int i = 0; i<theList.Count; i++)
+            List<BeaEngine._Disasm> theList = BeaEngine._Disassemble(byteArray, 0x7FFDCDE61D3A, BeaEngine.Architecture.x86_64);
+
+            for (int i = 0; i < theList.Count; i++)
             {
 
                 BeaEngine._Disasm disasm = theList[i];
 
-                if (disasm.Length< 1 || disasm.Length> 15) // Verify that instruction lenght is within the bounds.
+                if (disasm.Length < 1 || disasm.Length > 15) // Verify that instruction lenght is within the bounds.
                     continue;
 
                 Console.WriteLine("{0} => {1}", disasm.VirtualAddr.ToString("X16"), disasm.CompleteInstr);
                 // 00007FFDCDE61D3A => cmp qword ptr [00007FFDCDE6A908h], 0000000000000000h
 
             }
+
 */
 
 #define WIN64
@@ -85,13 +89,6 @@ using UInt8 = System.Byte;
         public static Int32 IncrementDisassembledOpCodes(int length)
         {            
             return Interlocked.Add(ref totalDisassembledOpCodes, length);
-        }
-
-        public static volatile Int32 totalYieldedInstructions = 0;
-
-        public static Int32 IncrementYieldedInstructions()
-        {
-            return Interlocked.Increment(ref totalYieldedInstructions);
         }
 
         #region Constants        
@@ -143,7 +140,7 @@ using UInt8 = System.Byte;
         public const byte MOVDDUP = 16;
 
 #if WIN64
-        private const string dllName = @"BeaEngine_5.3.0.dll";                
+        private const string dllName = @"BeaEngine_5.3.0.dll";
 
 #else
         private const string DllName = "BeaEngine-32.dll";
@@ -460,8 +457,7 @@ using UInt8 = System.Byte;
         public static extern int Disassemble(ref _Disasm instruction);
 
         // https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/yield
-
-        // [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+        
         public static IEnumerable<_Disasm> Disassemble(byte[] bytes, UInt64 address, Architecture architecture, bool benchmark)
         {
 
@@ -483,26 +479,17 @@ using UInt8 = System.Byte;
 
                 d.Length = BeaEngine.Disassemble(ref d);
 
-                if (d.Length == BeaEngine.OutOfBlock)
+                if (d.Length == BeaEngine.UnknownOpcode || d.Length == BeaEngine.OutOfBlock)
                 {
-                    error = true;
-                }
-                else if (d.Length == BeaEngine.UnknownOpcode)
-                {
-
-                    IncrementDisassembledOpCodes(d.Length);
-
                     d.EIP = d.EIP + 1;
                     d.VirtualAddr = d.VirtualAddr + 1;
-
                 }
                 else
                 {
 
                     _Disasm yieldedInst = d;
 
-                    IncrementDisassembledOpCodes(yieldedInst.Length); // Disassembled op codes / sec
-                    // IncrementYieldedInstructions();
+                    IncrementDisassembledOpCodes(yieldedInst.Length); // Disassembled op codes / sec                    
 
                     // Console.WriteLine("{0} {1} [{2}]", yieldedInst.VirtualAddr.ToString("X"), yieldedInst.CompleteInstr, yieldedInst.Length);
 
@@ -533,63 +520,6 @@ using UInt8 = System.Byte;
             h.Free();
 
             yield break;
-
-        }
-
-        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-        public static List<_Disasm> _Disassemble(byte[] bytes, UInt64 address, Architecture architecture)
-        {
-
-            List<_Disasm> theList = new List<_Disasm>();
-
-            GCHandle h = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            UInt64 endOfCodeSection = (UInt64)h.AddrOfPinnedObject().ToInt64() + (ulong)bytes.Length;
-
-            _Disasm d = new _Disasm();
-
-            d.EIP = (UIntPtr)h.AddrOfPinnedObject().ToInt64();
-            d.VirtualAddr = address;
-            d.Archi = architecture;
-
-            bool error = false;
-
-            while (!error)
-            {
-
-                d.SecurityBlock = (uint)(endOfCodeSection - d.EIP.ToUInt64());
-
-                d.Length = BeaEngine.Disassemble(ref d);
-
-                if (d.Length == BeaEngine.OutOfBlock)
-                {
-                    error = true;
-                }
-                else if (d.Length == BeaEngine.UnknownOpcode)
-                {
-                    d.EIP = d.EIP + 1;
-                    d.VirtualAddr = d.VirtualAddr + 1;
-                }
-                else
-                {
-
-                    _Disasm myInst = d;
-                    theList.Add(myInst);
-
-                    d.EIP = d.EIP + d.Length;
-                    d.VirtualAddr = d.VirtualAddr + (ulong)d.Length;
-
-                    if (d.EIP.ToUInt64() >= endOfCodeSection)
-                    {
-                        error = true;
-                    }
-
-                }
-
-            }
-
-            h.Free();
-
-            return theList;
 
         }
 
