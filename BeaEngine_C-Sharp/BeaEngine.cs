@@ -523,6 +523,62 @@ using UInt8 = System.Byte;
 
         }
 
+        public static List<_Disasm> _Disassemble(byte[] bytes, UInt64 address, Architecture architecture)
+        {
+
+            List<_Disasm> theList = new List<_Disasm>();
+
+            GCHandle h = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            UInt64 endOfCodeSection = (UInt64)h.AddrOfPinnedObject().ToInt64() + (ulong)bytes.Length;
+
+            _Disasm d = new _Disasm();
+
+            d.EIP = (UIntPtr)h.AddrOfPinnedObject().ToInt64();
+            d.VirtualAddr = address;
+            d.Archi = architecture;
+
+            bool error = false;
+
+            while (!error)
+            {
+
+                d.SecurityBlock = (uint)(endOfCodeSection - d.EIP.ToUInt64());
+
+                d.Length = BeaEngine.Disassemble(ref d);
+
+                if (d.Length == BeaEngine.OutOfBlock)
+                {
+                    error = true;
+                }
+                else if (d.Length == BeaEngine.UnknownOpcode)
+                {
+                    d.EIP = d.EIP + 1;
+                    d.VirtualAddr = d.VirtualAddr + 1;
+                }
+                else
+                {
+
+                    _Disasm myInst = d;
+                    theList.Add(myInst);
+
+                    d.EIP = d.EIP + d.Length;
+                    d.VirtualAddr = d.VirtualAddr + (ulong)d.Length;
+
+                    if (d.EIP.ToUInt64() >= endOfCodeSection)
+                    {
+                        error = true;
+                    }
+
+                }
+
+            }
+
+            h.Free();
+
+            return theList;
+
+        }
+
         [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr BeaEngineVersion();
 
